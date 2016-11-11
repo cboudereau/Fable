@@ -11,6 +11,9 @@ open System.Drawing
 open Fable.Core
 open Fable.Import.Browser
 
+[<Emit("Math.random()")>]
+let random (): float = jsNative
+
 module String = 
     [<Emit("""$1.charAt($0)""")>]
     let char (i:int) (s:string) : char = failwith "not yet implemented"
@@ -137,68 +140,102 @@ module Gameboy =
         type Level = Level of int
         type Score = Score of int
         type Lines = Lines of int
+        type Block = 
+            | White
+            | Square
+            | TopBar
+            | MiddleBar
+            | BottomBar
+            | T
+            | RightL
+            | LeftL
+            | RightS
+            | LeftS
+
+        type Command = 
+            | RotateLeft
+            | RotateRight
+            | Down
+
+        type CurrentTetromino = CurrentTetromino of Block [,]
         
+        let next () = Array2D.create 18 10 White |> CurrentTetromino
+        
+        type Land = 
+            | Land of Block [,]
+            with
+                static member empty = Array2D.create 18 10 White |> Land
+
         type GameState = 
             { Score:Score
               Level:Level
-              Lines:Lines }
+              Lines:Lines
+              Land:Land
+              Tetromino:CurrentTetromino }
+        
+        let move command game = 
+            let (CurrentTetromino t) = game.Tetromino
 
-        module Boxes = 
-            type Block = 
-                | White
-                | Square
-                | TopBar
-                | MiddleBar
-                | BottomBar
-                | T
-                | RightL
-                | LeftL
-                | RightS
-                | LeftS
-
-            type Tetromino = Tetromino of Block [,]
-
-            let tetrominoes = 
-                let bar = 
-                    [| [|TopBar;MiddleBar;MiddleBar;BottomBar|] |] |> Array2D.ofArray |> Tetromino
-                    
-                let square = 
-                    [| [|Square;Square|]
-                       [|Square;Square|] |] |> Array2D.ofArray |> Tetromino
-
-                let t = 
-                    [| [|    T;T;T;T    |]
-                       [|White;T;T;White|] |] |> Array2D.ofArray |> Tetromino
-
-                let rightL = 
-                    [| [|RightL;RightL;RightL;RightL|]
-                       [|RightL;White; White; White|] |] |> Array2D.ofArray |> Tetromino
+            match command with
+            | RotateRight -> 
+                failwith "todo"
+            | RotateLeft -> 
+                failwith "todo"
+            | Down -> 
                 
-                let leftL = 
-                    [| [|LeftL;LeftL;LeftL;LeftL|]
-                       [|White;White;White;LeftL|] |] |> Array2D.ofArray |> Tetromino
+                failwith "todo"
+            game.Tetromino
 
-                let rightS = 
-                    [| [|White; RightS;RightS|]
-                       [|RightS;RightS;White |] |] |> Array2D.ofArray |> Tetromino
+        type Tetromino = Tetromino of Block [,]
 
-                let leftS = 
-                    [| [|LeftS;LeftS;White|]
-                       [|White;LeftS;LeftS|] |] |> Array2D.ofArray |> Tetromino
+        type Turn = Computer | Player of string
 
-                [ bar; square; t; rightL; leftL; rightS; leftS ]
+        let update next game command = 
+            let ngame = move command game
+            //If under the limit, merge and generate next currentTetromino
+            ngame
+
+        let tetrominoes = 
+            let bar = 
+                [| [|TopBar;MiddleBar;MiddleBar;BottomBar|] |] |> Array2D.ofArray |> Tetromino
+                
+            let square = 
+                [| [|Square;Square|]
+                   [|Square;Square|] |] |> Array2D.ofArray |> Tetromino
+
+            let t = 
+                [| [|    T;T;T;T    |]
+                   [|White;T;T;White|] |] |> Array2D.ofArray |> Tetromino
+
+            let rightL = 
+                [| [|RightL;RightL;RightL;RightL|]
+                   [|RightL;White; White; White|] |] |> Array2D.ofArray |> Tetromino
             
-            let asciiArts = 
-                [(White, """
-        
-        
-        
-        
-        
-        
-        
-        """ |> AsciiArt |> toColors);
-                 (Square, """
+            let leftL = 
+                [| [|LeftL;LeftL;LeftL;LeftL|]
+                   [|White;White;White;LeftL|] |] |> Array2D.ofArray |> Tetromino
+
+            let rightS = 
+                [| [|White; RightS;RightS|]
+                   [|RightS;RightS;White |] |] |> Array2D.ofArray |> Tetromino
+
+            let leftS = 
+                [| [|LeftS;LeftS;White|]
+                   [|White;LeftS;LeftS|] |] |> Array2D.ofArray |> Tetromino
+
+            [ bar; square; t; rightL; leftL; rightS; leftS ]
+            
+        let asciiArts = 
+            Map.ofArray [|(White, """
+    
+    
+    
+    
+    
+    
+    
+    """ |> AsciiArt |> toColors);
+              (Square, """
 ########
 #      #
 # #### #
@@ -207,8 +244,8 @@ module Gameboy =
 # #### #
 #      #
 ########""" |> AsciiArt |> toColors);
-     
-                 (TopBar, """
+ 
+              (TopBar, """
 ########
 #///|///
 #/|///|/
@@ -218,7 +255,7 @@ module Gameboy =
 #/|//|//
 ########""" |> AsciiArt |> toColors);
 
-                 (MiddleBar, """
+              (MiddleBar, """
 ########
 /|///|//
 ///|///|
@@ -228,7 +265,7 @@ module Gameboy =
 |/|/|///
 ########""" |> AsciiArt |> toColors);
 
-                 (BottomBar, """
+              (BottomBar, """
 ########
 //|/|//#
 //////|#
@@ -237,8 +274,8 @@ module Gameboy =
 //|////#
 |///|//#
 ########""" |> AsciiArt |> toColors);
-     
-                 (T, """
+ 
+              (T, """
 ########
 #//////#
 #/   #/#
@@ -248,7 +285,7 @@ module Gameboy =
 #//////#
 ########""" |> AsciiArt |> toColors);
 
-                 (RightL, """
+              (RightL, """
 ########
 #||||||#
 #||||||#
@@ -257,8 +294,8 @@ module Gameboy =
 #||||||#
 #||||||#
 ########""" |> AsciiArt |> toColors);
-     
-                 (LeftL, """
+ 
+              (LeftL, """
 ########
 #//////#
 #/####/#
@@ -268,7 +305,7 @@ module Gameboy =
 #//////#
 ########""" |> AsciiArt |> toColors);
 
-                 (RightS, """
+              (RightS, """
 ########
 #||||||#
 #|####|#
@@ -278,7 +315,7 @@ module Gameboy =
 #||||||#
 ########""" |> AsciiArt |> toColors);
 
-                 (LeftS, """
+              (LeftS, """
 ########
 #//////#
 #//////#
@@ -286,10 +323,9 @@ module Gameboy =
 #//##//#
 #//////#
 #//////#
-########""" |> AsciiArt |> toColors);] 
+########""" |> AsciiArt |> toColors)|] 
 
         module Numbers = 
-            let blackPix = '#'
             let private separatorSize = 2
             let size = 6 + separatorSize
 
@@ -349,7 +385,7 @@ module Gameboy =
             let background = Html.createImage background
             background |> Html.drawImage context 0 0
             
-            let game = { Level = level; Score = Score 0; Lines = Lines 0 }
+            let game = { Level = level; Score = Score 0; Lines = Lines 0; Land = Land.empty; Tetromino = next () }
             game |> displayGame context
             game
 
@@ -361,36 +397,11 @@ let rec game () =
     let context = canvas.getContext_2d()
     canvas.width <- float Gameboy.width
     canvas.height <- float Gameboy.height
+    let boxMap = Gameboy.Tetris.asciiArts |> Map.map(fun _ a -> a |> Html.createPixels context)
 
-//    let r = Gameboy.Tetris.Level 0 |> start context
+    let r = Gameboy.Tetris.Level 0 |> start context
 
-    let b = """
-########
-#//////#
-#//////#
-#//##//#
-#//##//#
-#//////#
-#//////#
-########""" |> Gameboy.AsciiArt |> Gameboy.toColors
-    
-//    { Red=255.;Green=0.;Blue=0.;Alpha=255. }
-//    |> Html.createBrush context 50
-//    |> Html.putImageData context 0 0
-
-//    [| [|{ Red=255.;Green=0.;Blue=0.;Alpha=255. }; { Red=0.;Green=255.;Blue=0.;Alpha=255. }|]
-//       [|{ Red=0.;Green=0.;Blue=255.;Alpha=255. }; { Red=0.;Green=0.;Blue=0.;Alpha=255. }|] |] 
-//    |> Array2D.ofArray
-//    |> Html.createPixels context 
-//    |> Html.putImageData context 0 0
-
-    
-
-    let id = b |> Html.createPixels context
-
-    id |> Html.putImageData context 0 0
-
-//    r
+    r
 
 Keyboard.init ()
 game ()
