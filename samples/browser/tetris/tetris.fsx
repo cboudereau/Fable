@@ -118,6 +118,14 @@ module Gameboy =
     let grey = { Red=107.; Green=115.; Blue=83.; Alpha=255. }
     let darkgrey = { Red=139.; Green=149.; Blue=109.; Alpha=255. }
     
+    type AsciiArt = 
+        | AsciiArt of string
+        with 
+            static member map f (AsciiArt a) = 
+                a.Split([|"\n";"\r\n"|], System.StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map(fun l -> [| 0 .. (l.Length - 1) |] |> Array.map(fun i -> l |> String.char i |> f))
+                |> Array2D.ofArray
+
     let toColor c = 
         match c with
         | '#' -> black
@@ -126,13 +134,7 @@ module Gameboy =
         | '|' -> grey
         | other -> failwithf "unexpected char %c" other
 
-    
-    type AsciiArt = AsciiArt of string
-
-    let toColors (AsciiArt a) : Color [,] = 
-        a.Split([|"\n";"\r\n"|], System.StringSplitOptions.RemoveEmptyEntries)
-        |> Array.map(fun l -> [| 0 .. (l.Length - 1) |] |> Array.map(fun i -> l |> String.char i |> toColor))
-        |> Array2D.ofArray
+    let toColors = AsciiArt.map toColor
 
     module Tetris = 
         let background = """data:image/png;base64,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""" 
@@ -157,43 +159,39 @@ module Gameboy =
             | RotateRight
             | Down
 
-        type CurrentTetromino = CurrentTetromino of Block [,]
-        
-        let next () = Array2D.create 18 10 White |> CurrentTetromino
+        type CurrentTetromino = 
+            | CurrentTetromino of Block [,]
+//            with static member next () = failwith "todo"
         
         type Land = 
             | Land of Block [,]
-            with
-                static member empty = Array2D.create 18 10 White |> Land
+//            with static member empty = Array2D.create 18 10 White |> Land
 
         type GameState = 
             { Score:Score
               Level:Level
-              Lines:Lines
-              Land:Land
-              Tetromino:CurrentTetromino }
+              Lines:Lines }
         
-        let move command game = 
-            let (CurrentTetromino t) = game.Tetromino
-
-            match command with
-            | RotateRight -> 
-                failwith "todo"
-            | RotateLeft -> 
-                failwith "todo"
-            | Down -> 
-                
-                failwith "todo"
-            game.Tetromino
+//        let move command game = 
+//            let (CurrentTetromino t) = game.Tetromino
+//
+//            match command with
+//            | RotateRight -> 
+//                failwith "todo"
+//            | RotateLeft -> 
+//                failwith "todo"
+//            | Down -> 
+//                failwith "todo"
+//            game.Tetromino
 
         type Tetromino = Tetromino of Block [,]
 
         type Turn = Computer | Player of string
 
-        let update next game command = 
-            let ngame = move command game
-            //If under the limit, merge and generate next currentTetromino
-            ngame
+//        let update next game command = 
+//            let ngame = move command game
+//            //If under the limit, merge and generate next currentTetromino
+//            ngame
 
         let tetrominoes = 
             let bar = 
@@ -204,8 +202,8 @@ module Gameboy =
                    [|Square;Square|] |] |> Array2D.ofArray |> Tetromino
 
             let t = 
-                [| [|    T;T;T;T    |]
-                   [|White;T;T;White|] |] |> Array2D.ofArray |> Tetromino
+                [| [|    T;T;T    |]
+                   [|White;T;White|] |] |> Array2D.ofArray |> Tetromino
 
             let rightL = 
                 [| [|RightL;RightL;RightL;RightL|]
@@ -385,7 +383,7 @@ module Gameboy =
             let background = Html.createImage background
             background |> Html.drawImage context 0 0
             
-            let game = { Level = level; Score = Score 0; Lines = Lines 0; Land = Land.empty; Tetromino = next () }
+            let game = { Level = level; Score = Score 0; Lines = Lines 0 }
             game |> displayGame context
             game
 
